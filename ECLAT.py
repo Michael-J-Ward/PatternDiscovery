@@ -36,6 +36,7 @@ def evalCandidates(candidates, itemLevel, frequent, lastLevel, minSupportCount):
         for subset in itertools.combinations(candidate, itemLevel-1):
             if frozenset(subset) not in lastLevel:          #make sure all subsets are frequent
                 valid = False
+                break
 
         tmp = frequent[setA] & frequent[setB]   #the transactions that contain both sets
 
@@ -64,3 +65,37 @@ def findFrequentSets(data, minSup = 0.5):
         frequent.update(tmp)
 
     return frequent
+
+def findRules(frequent, minConf = 0.5):
+    """ This takes the output of findFrequentSets as input and
+        outputs strong association rules
+    """
+    candidates = list(itertools.combinations(frequent.keys(),2))
+    rules = []
+    for setA, setB in candidates:
+        transactionsA = frequent[setA]
+        transactionsB = frequent[setB]
+        if setA.issubset(setB):
+            if float(len(transactionsB))/len(transactionsA) > minConf:
+                rules.append(AssocRule(setA, transactionsA, setB, transactionsB))
+        elif setB.issubset(setA):
+            if float(len(transactionsA))/len(transactionsB) > minConf:
+                rules.append(AssocRule(setB, transactionsB, setA, transactionsA))
+        else:
+            #neither set is a subset of the other, no potential rule
+            continue
+    return rules
+
+
+
+class AssocRule(object):
+    def __init__(self, setA, transactionsA, setB, transactionsB):
+        self.setA = setA
+        self.setB = setB
+        self.transactions = {setA: transactionsA,
+                             setB: transactionsB}
+        self.support = len(transactionsB)   #absolute support
+        self.confidence = float(self.support)/len(transactionsA)
+
+    def __str__(self):
+        return "{A} ---> {B} with absolute support of {S} and confidence {C}".format(A=self.setA, B= self.setB, S=self.support, C=self.confidence)
